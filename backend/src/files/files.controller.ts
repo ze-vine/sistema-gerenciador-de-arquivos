@@ -38,7 +38,7 @@ export class FilesController {
     const cloudinaryResult = await this.filesService.uploadFile(file);
 
     const fileData = {
-      name: file.originalname,
+      name: Buffer.from(file.originalname, 'latin1').toString('utf8'),
       type: file.mimetype,
       size: file.size,
       url: cloudinaryResult.secure_url,
