@@ -1,5 +1,17 @@
 @token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiM2U4NzNlZi04MDA0LTRiNzQtYTcyZi02N2M4MWM0N2U5MWYiLCJlbWFpbCI6Im1hcmlhLmdhYnJpZWxhQHRlc3RlLmNvbSIsImlhdCI6MTc3NTg2MzIzNCwiZXhwIjoxNzc1OTQ5NjM0fQ.xFiZTYoV0SYZorMxx6ScA7icJVwlh-zlLvaTj374tco
 
+### Upload de Arquivo
+POST http://localhost:3000/files/upload
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="foto-de-perfil.jpg"
+Content-Type: image/jpeg
+
+< c:\Users\José Vine\Pictures\foto-de-perfil.jpg
+--boundary--
+
 GET http://localhost:3000/users/b3e873ef-8004-4b74-a72f-67c81c47e91f
 Authorization: Bearer {{token}}
 Content-Type: application/json

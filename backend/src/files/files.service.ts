@@ -1,30 +1,47 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { v2 as cloudinary } from 'cloudinary';
+import { UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
+import * as streamifier from 'streamifier';
 import { CreateFileDto } from './dto/create-file.dto';
-import { UpdateFileDto } from './dto/update-file.dto';
-import { PrismaService } from "../prisma/prisma.service"
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class FilesService {
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  create(createFileDto: CreateFileDto) {
-    return 'This action adds a new file';
+  uploadFile(file: Express.Multer.File): Promise<UploadApiResponse | UploadApiErrorResponse> {
+    if (!file) throw new BadRequestException('Arquivo não enviado');
+
+    return new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        (error, result) => {
+          if (error) return reject(error);
+          if (!result) return reject(new Error('O upload do Cloudinary é inexistente!'));
+          resolve(result);
+        },
+      );
+
+      streamifier.createReadStream(file.buffer).pipe(uploadStream);
+    });
   }
 
-  findAll() {
-    return `This action returns all files`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} file`;
-  }
-
-  update(id: number, updateFileDto: UpdateFileDto) {
-    return `This action updates a #${id} file`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} file`;
+  async create(userId: string, createFileDto: CreateFileDto) {
+    return this.prisma.file.create({
+      data: {
+        ...createFileDto,
+        user: {
+          connect: { id: userId }
+        }
+      },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        url: true,
+        size: true,
+        createdAt: true,
+      }
+    });
   }
 }
