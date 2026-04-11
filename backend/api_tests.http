@@ -1,4 +1,13 @@
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiM2U4NzNlZi04MDA0LTRiNzQtYTcyZi02N2M4MWM0N2U5MWYiLCJlbWFpbCI6Im1hcmlhLmdhYnJpZWxhQHRlc3RlLmNvbSIsImlhdCI6MTc3NTg2MzIzNCwiZXhwIjoxNzc1OTQ5NjM0fQ.xFiZTYoV0SYZorMxx6ScA7icJVwlh-zlLvaTj374tco
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmMzVjNTJiZC0xZWE5LTQzZjEtYmJlNy0zZTUxNThkOTkyMGEiLCJlbWFpbCI6Im1hcmlhLmdhYnJpZWxhQHRlc3RlLmNvbSIsImlhdCI6MTc3NTkxMjUyNiwiZXhwIjoxNzc1OTk4OTI2fQ.jpQThJ7f4UMY2ZxVQGdkDN2V6vAolWs7Bw4RjpE2x3k
+
+#Ver lista de arquivos do usuário
+GET http://localhost:3000/files
+Authorization: Bearer {{token}}
+
+### Excluir
+DELETE http://localhost:3000/files/42e464e6-0a1d-4121-a8f1-802bdfd4e6d6
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=boundary
 
 ### Upload de Arquivo
 POST http://localhost:3000/files/upload

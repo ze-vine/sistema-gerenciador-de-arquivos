@@ -22,6 +22,7 @@ model File {
   url          String
   type         String
   size         Int
+  publicId     String
   userId       String
   user         User     @relation(fields: [userId], references: [id])
   createdAt    DateTime @default(now())

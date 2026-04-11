@@ -3,4 +3,5 @@ export class CreateFileDto {
     url!: string;
     type!: string;
     size!: number;
+    publicId!: string;
 }

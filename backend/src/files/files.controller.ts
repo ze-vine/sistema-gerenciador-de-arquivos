@@ -1,4 +1,4 @@
-import { Controller, Post, UploadedFile, UseInterceptors, UseGuards, BadRequestException, Request } from '@nestjs/common';
+import { Controller, Post, UploadedFile, UseInterceptors, UseGuards, BadRequestException, Request, Get, Delete, Param, ParseUUIDPipe } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FilesService } from './files.service';
 import { AuthGuard } from '../auth/auth.guard';
@@ -6,6 +6,18 @@ import { AuthGuard } from '../auth/auth.guard';
 @Controller('files')
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
+
+  @Get()
+  @UseGuards(AuthGuard)
+  async findAll(@Request() request) {
+    return this.filesService.findAll(request.user.sub);
+  }
+
+  @Delete(':id')
+  @UseGuards(AuthGuard)
+  async remove(@Param('id', new ParseUUIDPipe()) id: string, @Request() request) {
+    return this.filesService.remove(id, request.user.sub);
+  }
 
   @Post('upload')
   @UseGuards(AuthGuard)
@@ -30,6 +42,7 @@ export class FilesController {
       type: file.mimetype,
       size: file.size,
       url: cloudinaryResult.secure_url,
+      publicId: cloudinaryResult.public_id,
     }
 
     return await this.filesService.create(userId, fileData);
