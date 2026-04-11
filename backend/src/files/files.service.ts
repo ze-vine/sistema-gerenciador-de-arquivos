@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { v2 as cloudinary } from 'cloudinary';
 import { UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
 import * as streamifier from 'streamifier';
@@ -22,13 +22,31 @@ export class FilesService {
   }
 
   async remove(fileId: string, userId: string) {
-    const result = await this.prisma.file.deleteMany({ where: { id: fileId, userId: userId } });
+    const file = await this.prisma.file.findFirst(
+      { where: { id: fileId, userId: userId } }
+    );
 
-    if (result.count === 0) {
-      throw new NotFoundException("Não foi possível excluir o arquivo, pois ele não existe!");
+    if (!file) throw new NotFoundException("O arquivo não foi encontrado!");
+
+    try {
+      const result = await cloudinary.uploader.destroy(file.publicId);
+
+      return await this.prisma.file.delete({ 
+      where: { id: fileId },
+      select: { 
+        id: true, 
+        name: true,
+        type: true,
+        url: true,
+        publicId: true,
+        size: true,
+        createdAt: true, 
+      }, 
+    });
+    } catch(e) {
+      console.error("Erro na exclusão!", e);
+      throw new InternalServerErrorException("Ocorreu um erro ao tentar remover seu arquivo. Por favor, tente novamente!");
     }
-
-    return { message: "Arquivo excluído com sucesso!" };
   }
 
   uploadFile(file: Express.Multer.File): Promise<UploadApiResponse | UploadApiErrorResponse> {
