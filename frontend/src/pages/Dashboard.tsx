@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { api } from "../api";
+import api from "../api";
 import type { IFile } from "../@types/file";
 import { FileCard } from "../components/FileCard";
 
-export function Dashboard() {
+export default function Dashboard() {
   const [files, setFiles] = useState<IFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 

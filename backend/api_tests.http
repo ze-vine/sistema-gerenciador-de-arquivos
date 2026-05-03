@@ -1,0 +1,18 @@
+POST http://localhost:3000/users
+Content-Type: application/json
+
+{
+    "name": "Maria Gabriela",
+    "email": "maria@gmail.com",
+    "password": "senha321"
+}
+
+###
+
+POST http://localhost:3000/auth
+Content-Type: application/json
+
+{
+    "email": "josevine729@gmail.com",
+    "password": "senha123"
+}

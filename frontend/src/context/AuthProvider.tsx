@@ -5,11 +5,6 @@ import api from "../api";
 export default function AuthProvider({ children }: { children: ReactNode }) {
     const [currentUser, setCurrentUser] = useState(() => {
         const user = localStorage.getItem("user");
-        if (!user || user === "undefined") {
-
-        } else {
-
-        }
         return user && user !== "undefined" ? JSON.parse(user) : null;
     });
 
