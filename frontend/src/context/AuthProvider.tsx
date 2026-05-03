@@ -11,8 +11,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                console.log(currentUser)
-                const { data } = await api.get("/users/8a096040-c20c-4e05-9167-fbfa07ede0da");
+                const { data } = await api.get("/users/me");
                 setCurrentUser(data);
                 localStorage.setItem("user", JSON.stringify(data));
             } catch (e) {

@@ -10,22 +10,16 @@ export class UsersController {
     private readonly usersService: UsersService,
   ) {}
 
-  @Get(':id')
+  @Get('me')
   @UseGuards(AuthGuard)
-  async getMe(@Param('id', new ParseUUIDPipe()) id: string, @Request() request) {
+  async getMe(@Request() request) {
     try {
-      if (id !== request.user.sub) throw new ForbiddenException("Você não tem permissão para acessar os dados de outro usuário!");
-      return this.usersService.findOne(id);
+      return this.usersService.findOne(request.user.sub);
     } catch (error) {
-      if (error instanceof UnauthorizedException) {
+      if (error instanceof NotFoundException) {
         return { 
           status: error.getStatus, 
           message: error.getResponse() 
-        }
-      } else if (error instanceof NotFoundException) {
-        return {
-          status: error.getStatus,
-          message: error.getResponse()
         }
       }
     }

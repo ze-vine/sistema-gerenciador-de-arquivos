@@ -17,7 +17,7 @@ export class UsersService {
       createdAt: true,
     } });
 
-    if (!user) throw new NotFoundException("Este usuário não existe");
+    if (!user) throw new NotFoundException();
 
     return user;
   }

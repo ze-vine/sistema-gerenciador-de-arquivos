@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Res, UnauthorizedException } from "@nestjs/common";
+import { Body, Controller, HttpException, Post, Res } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { LoginUserDto } from "../users/dto/login-user.dto";
 import type { Response } from "express";
@@ -28,12 +28,7 @@ export class AuthController {
           }
         };
       } catch (error) {
-        if (error instanceof UnauthorizedException) {
-          return { 
-            status: error.getStatus, 
-            message: error.getResponse() 
-          }
-        }
+        if (error instanceof HttpException) return error.getResponse();
       }
     }
 }
