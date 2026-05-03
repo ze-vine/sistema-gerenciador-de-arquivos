@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Patch, Param, ParseUUIDPipe, UseGuards, Request, ForbiddenException, Delete, Get } from '@nestjs/common';
+import { Controller, Post, Body, Patch, Param, ParseUUIDPipe, UseGuards, Request, ForbiddenException, Delete, Get, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -13,8 +13,22 @@ export class UsersController {
   @Get(':id')
   @UseGuards(AuthGuard)
   async getMe(@Param('id', new ParseUUIDPipe()) id: string, @Request() request) {
-    if (id !== request.user.sub) throw new ForbiddenException("Você não tem permissão para acessar os dados de outro usuário!");
-    return this.usersService.findOne(id);
+    try {
+      if (id !== request.user.sub) throw new ForbiddenException("Você não tem permissão para acessar os dados de outro usuário!");
+      return this.usersService.findOne(id);
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        return { 
+          status: error.getStatus, 
+          message: error.getResponse() 
+        }
+      } else if (error instanceof NotFoundException) {
+        return {
+          status: error.getStatus,
+          message: error.getResponse()
+        }
+      }
+    }
   }
 
   @Post()
