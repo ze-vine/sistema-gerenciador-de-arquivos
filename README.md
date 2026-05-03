@@ -6,7 +6,7 @@ Esta é uma aplicação Fullstack desenvolvida como parte de um desafio técnico
 <ul>
   <li><strong>NestJS:</strong> Framework Node.js progressivo para construção de aplicativos eficientes e escaláveis.</li>
   <li><strong>PostgreSQL:</strong> Banco de dados relacional robusto.</li>
-  <li><strong>TypeORM:</strong> Para comunicação simplificada e segura com o banco de dados.</li>
+  <li><strong>PrismaORM:</strong> Para comunicação simplificada e segura com o banco de dados.</li>
   <li><strong>TypeScript:</strong> Tipagem estática para maior segurança e produtividade.</li>
   <li><strong>Multer:</strong> Middleware para manipulação de multipart/form-data (upload de arquivos).</li>
 </ul>
