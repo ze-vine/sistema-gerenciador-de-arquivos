@@ -2,6 +2,8 @@ import { PrismaService } from "../prisma/prisma.service"
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from "@nestjs/jwt";
+import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken';
 
 @Injectable()
 export class AuthService {
@@ -17,8 +19,15 @@ export class AuthService {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) throw new UnauthorizedException("E-mail ou senha incorretos!");
 
-        const payload = { sub: user.id, email: user.email };
-        const token = await this.jwtService.signAsync(payload);
+        const payload = {
+            sub: user.id, 
+            jti: uuidv4()
+        }
+
+        const token = await this.jwtService.signAsync(payload, {
+            secret: process.env.JWT_SECRET,
+            expiresIn: "15m"
+        });
         
         return {
             token,
