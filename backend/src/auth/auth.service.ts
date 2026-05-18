@@ -38,4 +38,14 @@ export class AuthService {
             }
         }
     }
+
+    async desvalidateToken(token: string): Promise<void> {
+        const tokenDecodificado = this.jwtService.decode(token);
+        await this.prisma.tokenBlacklist.create({
+            data: {
+                jti: tokenDecodificado.jti,
+                expiresAt: new Date(tokenDecodificado.exp * 1000)
+            }
+        });
+    }
 }
