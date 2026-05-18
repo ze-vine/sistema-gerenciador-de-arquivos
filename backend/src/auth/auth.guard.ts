@@ -24,6 +24,14 @@ export class AuthGuard implements CanActivate {
       secret: this.configService.get<string>('JWT_SECRET'),
     });
 
+      const bannedToken = await this.prisma.tokenBlacklist.findUnique({
+        where: {
+          jti: payload.jti
+        }
+      });
+
+      if (bannedToken) throw new UnauthorizedException("Token inválido ou expirado!");
+
       const user = await this.prisma.user.findUnique(
         { where: { id: payload.sub } },
       );
