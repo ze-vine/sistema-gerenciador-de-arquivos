@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import api from "../api";
 import type { IFile } from "../@types/file";
 import { FileCard } from "../components/FileCard";
+import { Button } from "../../components/ui/button"
 
 export default function Dashboard() {
   const [files, setFiles] = useState<IFile[]>([]);
@@ -46,6 +47,15 @@ export default function Dashboard() {
     }
   };
 
+  const handleLogout = async (): Promise<void> => {
+    try {
+      await api.post("/auth/logout");
+      window.location.reload();
+    } catch (error) {
+      alert("Não foi possível sair dessa sessão");
+    }
+  }
+
   useEffect(() => {
     fetchFiles();
   }, []);
@@ -59,13 +69,17 @@ export default function Dashboard() {
             <p className="text-gray-500">Gerencie seus uploads de forma simples.</p>
           </div>
 
-          <label className={`
-            cursor-pointer flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-white transition-all
-            ${isUploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-100'}
-          `}>
-            {isUploading ? "Enviando..." : "＋ Upload de Arquivo"}
-            <input type="file" className="hidden" onChange={handleUpload} disabled={isUploading} accept="image/*,.pdf"/>
-          </label>
+          <div className="flex flex-row items-center gap-3 w-full md:w-auto justify-end">
+            <label className={`
+              cursor-pointer flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-white transition-all
+              ${isUploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-100'}
+            `}>
+              {isUploading ? "Enviando..." : "＋ Upload de Arquivo"}
+              <input type="file" className="hidden" onChange={handleUpload} disabled={isUploading} accept="image/*,.pdf"/>
+            </label>
+            
+            <Button onClick={handleLogout} variant="destructive" className="w-[8rem] h-[3.1rem]">Sair</Button>
+          </div>
         </header>
 
         {files.length === 0 ? (
