@@ -10,6 +10,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         const checkAuth = async () => {
+            if (window.location.pathname == "/login") return;
             try {
                 const { data } = await api.get("/users/me");
                 setCurrentUser(data);
