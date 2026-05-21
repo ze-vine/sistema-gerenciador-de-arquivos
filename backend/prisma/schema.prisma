@@ -38,4 +38,5 @@ model TokenBlacklist {
   expiresAt     DateTime @map("expires_at")
 
   @@map("token_blacklist")
+  @@index([jti])
 }
