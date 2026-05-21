@@ -12,7 +12,6 @@ export default function Form() {
     const handleSubmit = async (e: any) => {
       e.preventDefault();
       const { data } = await axios.post("/auth", { email, password });
-      console.log(data)
       if (data.statusCode === 401) {
         alert(data.message);
         return;
