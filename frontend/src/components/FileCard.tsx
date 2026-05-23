@@ -5,7 +5,7 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
-export function FileCard({ file, onDelete }: Props) {
+export function FileCard({ file }: Props) {
   const isImage = file.type.startsWith("image/");
 
 const openFile = () => {
@@ -59,13 +59,6 @@ const openFile = () => {
             {(file.size / 1024).toFixed(1)} KB
           </span>
         </div>
-
-        <button 
-          onClick={() => onDelete(file.id)}
-          className="mt-4 w-full py-2 text-xs font-bold text-red-500 bg-red-50 rounded-xl hover:bg-red-500 hover:text-white transition-all duration-200"
-        >
-          EXCLUIR ARQUIVO
-        </button>
       </div>
     </div>
   );
