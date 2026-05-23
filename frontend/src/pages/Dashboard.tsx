@@ -1,12 +1,16 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import api from "../api";
 import type { IFile } from "../@types/file";
 import { FileCard } from "../components/FileCard";
-import { Button } from "../../components/ui/button"
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../context/Contexts";
+import { Button } from "@/components/ui/button"
 
 export default function Dashboard() {
   const [files, setFiles] = useState<IFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const navigate = useNavigate();
+  const { setCurrentUser } = useContext(AuthContext)!;
 
   const fetchFiles = async () => {
     try {
@@ -37,8 +41,6 @@ export default function Dashboard() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Deseja realmente excluir este arquivo?")) return;
-    
     try {
       await api.delete(`/files/${id}`);
       setFiles(prev => prev.filter(f => f.id !== id));
@@ -50,7 +52,8 @@ export default function Dashboard() {
   const handleLogout = async (): Promise<void> => {
     try {
       await api.post("/auth/logout");
-      window.location.reload();
+      setCurrentUser(null);
+      navigate("/login");
     } catch (error) {
       alert("Não foi possível sair dessa sessão");
     }

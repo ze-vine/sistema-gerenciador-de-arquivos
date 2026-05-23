@@ -1,4 +1,5 @@
 import type { IFile } from "../@types/file";
+import { AlertDialogDestructive } from "./AlertDialogDestructive";
 
 interface Props {
   file: IFile;
@@ -59,13 +60,18 @@ const openFile = () => {
             {(file.size / 1024).toFixed(1)} KB
           </span>
         </div>
-
-        <button 
-          onClick={() => onDelete(file.id)}
-          className="mt-4 w-full py-2 text-xs font-bold text-red-500 bg-red-50 rounded-xl hover:bg-red-500 hover:text-white transition-all duration-200"
-        >
-          EXCLUIR ARQUIVO
-        </button>
+      </div>
+      <div className="flex justify-center">
+        <AlertDialogDestructive
+          buttonTitle="EXCLUIR ESTE ARQUIVO"
+          title="Tem certeza de que quer excluir este arquivo?"
+          description="Se você clicar em excluir, a ação não poderá mais ser desfeita."
+          cancelTitle="Cancelar"
+          actionTitle="Excluir"
+          deleteFileFunction={onDelete}
+          deletedFile={file}
+          className="my-3"
+        />
       </div>
     </div>
   );
