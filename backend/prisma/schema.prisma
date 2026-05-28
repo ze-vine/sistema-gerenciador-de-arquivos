@@ -13,6 +13,7 @@ model User {
   password  String
   name      String
   files     File[]
+  folders   Folder[]
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("users")
@@ -24,8 +25,10 @@ model File {
   url          String
   type         String
   size         Int
-  publicId     String @map("public_id")
-  userId       String @map("user_id")
+  publicId     String   @map("public_id")
+  folderId     String?  @map("folder_id")
+  folder       Folder?  @relation(fields: [folderId, userId], references: [id, userId])
+  userId       String   @map("user_id")
   user         User     @relation(fields: [userId], references: [id])
   createdAt    DateTime @default(now()) @map("created_at")
 
@@ -39,4 +42,18 @@ model TokenBlacklist {
 
   @@map("token_blacklist")
   @@index([jti])
+}
+
+model Folder {
+  id            String    @default(uuid())
+  name          String    @unique
+  files         File[]
+  folders       Folder[]  @relation("ChildrenFolders")
+  folderId      String?   @map("folder_id")
+  folder        Folder?   @relation("ChildrenFolders", fields: [folderId, userId], references: [id, userId]) 
+  userId        String    @map("user_id")
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@id([id, userId])
+  @@map("folders")
 }
