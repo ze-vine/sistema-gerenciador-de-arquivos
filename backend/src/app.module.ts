@@ -7,9 +7,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TokenBlacklistCleaner } from './token-blacklist-cleaner.module';
+import { FoldersModule } from './folders/folders.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), ScheduleModule.forRoot(), UsersModule, FilesModule, PrismaModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), ScheduleModule.forRoot(), UsersModule, FilesModule, PrismaModule, FoldersModule],
   controllers: [AppController],
   providers: [AppService, TokenBlacklistCleaner],
 })
