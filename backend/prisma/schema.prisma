@@ -54,6 +54,7 @@ model Folder {
   userId        String    @map("user_id")
   user          User      @relation(fields: [userId], references: [id])
 
-  @@id([id, userId])
+  @@id(name: "folderUserRelation", [id, userId])
+  @@unique([name, folderId])
   @@map("folders")
 }
