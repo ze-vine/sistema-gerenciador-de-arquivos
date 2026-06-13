@@ -67,6 +67,7 @@ export class FilesService {
 
   async create(userId: string, createFileDto: CreateFileDto) {
     return this.prisma.file.create({
+      //@ts-ignore
       data: {
         ...createFileDto,
         user: {

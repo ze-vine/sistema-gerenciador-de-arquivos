@@ -1,15 +1,29 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
 import { FoldersService } from './folders.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
+import { AuthGuard } from '../auth/auth.guard';
+import type { Request } from 'express';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('folders')
 export class FoldersController {
-  constructor(private readonly foldersService: FoldersService) {}
+  constructor(
+    private readonly foldersService: FoldersService,
+    private jwtService: JwtService,
+    private configService: ConfigService
+  ) {}
 
   @Post()
-  create(@Body() createFolderDto: CreateFolderDto) {
-    return this.foldersService.create(createFolderDto);
+  @UseGuards(AuthGuard)
+  async create(@Req() request: Request, @Body() createFolderDto: CreateFolderDto) {
+    const token = request.cookies["access_token"];
+    const payload = await this.jwtService.verifyAsync(token, {
+            secret: this.configService.get<string>('JWT_SECRET'),
+    });
+    const userId = payload.sub
+    return this.foldersService.create(userId, createFolderDto);
   }
 
   @Get()

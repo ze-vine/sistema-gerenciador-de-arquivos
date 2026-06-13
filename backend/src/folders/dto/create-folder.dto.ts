@@ -1,1 +1,4 @@
-export class CreateFolderDto {}
+export class CreateFolderDto {
+    name!: string;
+    folderId!: string;
+}

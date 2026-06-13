@@ -1,15 +1,59 @@
-import { ConflictException, Injectable } from '@nestjs/common';
-import { CreateFolderDto } from './dto/create-folder.dto';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable } from '@nestjs/common';
 import { UpdateFolderDto } from './dto/update-folder.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateFolderDto } from './dto/create-folder.dto';
+import { Folder } from './entities/folder.entity';
 
 @Injectable()
 export class FoldersService {
 
   constructor(private prismaService: PrismaService) {}
 
-  async create(createFolderDto: CreateFolderDto) {
-    return "This action creates a folder"
+  async create(userId: string, createFolderDto: CreateFolderDto): Promise<Folder> {
+    
+    if (createFolderDto.folderId === null) {
+      const folder = await this.prismaService.folder.findUnique({
+        where: { name: createFolderDto.name, userId: userId }
+      });
+
+      if (folder) throw new ConflictException("Uma pasta com esse nome já existe!");
+
+      const newFolder = await this.prismaService.folder.create({
+        data: {
+          ...createFolderDto,
+          userId: userId
+        }
+      });
+
+      return newFolder;
+    }
+
+    const folder = await this.prismaService.folder.findUnique({
+        where: { name: createFolderDto.name, folderId: createFolderDto.folderId }
+    });
+    
+    if (folder) throw new ConflictException("Uma pasta com esse nome já existe!");
+    
+    const parentFolder = await this.prismaService.folder.findUnique({
+      where: {folderUserRelation: { id: createFolderDto.folderId, userId: userId }},
+      select: { userId: true }
+    });
+
+    if (!parentFolder) {
+      throw new BadRequestException("A pasta pai informada não existe!");
+    };
+    if (parentFolder.userId !== userId) {
+      throw new ForbiddenException("Você não têm permissão para inserir pastas na conta de outro usuário");
+    };
+
+    const newFolder = await this.prismaService.folder.create({
+      data: {
+        ...createFolderDto,
+        userId: userId
+      },
+    });
+
+    return newFolder;
   }
 
   findAll() {
