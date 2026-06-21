@@ -3,57 +3,50 @@ import { UpdateFolderDto } from './dto/update-folder.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { Folder } from './entities/folder.entity';
+import { FilesService } from '../files/files.service';
 
 @Injectable()
 export class FoldersService {
 
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService
+  ) {}
 
   async create(userId: string, createFolderDto: CreateFolderDto): Promise<Folder> {
-    
-    if (createFolderDto.folderId === null) {
-      const folder = await this.prismaService.folder.findUnique({
-        where: { name: createFolderDto.name, userId: userId }
-      });
 
-      if (folder) throw new ConflictException("Uma pasta com esse nome já existe!");
+    const folderSearchCondition = createFolderDto.folderId !== null
+      ? { name: createFolderDto.name, folderId: createFolderDto.folderId }
+      : { name: createFolderDto.name, userId: userId };
 
-      const newFolder = await this.prismaService.folder.create({
-        data: {
-          ...createFolderDto,
-          userId: userId
-        }
-      });
-
-      return newFolder;
+    const existingFolder = await this.searchForFolderInTheDatabase(folderSearchCondition);
+    if (existingFolder) {
+      throw new ConflictException("Uma pasta com esse nome já existe!");
     }
 
-    const folder = await this.prismaService.folder.findUnique({
-        where: { name: createFolderDto.name, folderId: createFolderDto.folderId }
-    });
-    
-    if (folder) throw new ConflictException("Uma pasta com esse nome já existe!");
-    
-    const parentFolder = await this.prismaService.folder.findUnique({
-      where: {folderUserRelation: { id: createFolderDto.folderId, userId: userId }},
-      select: { userId: true }
-    });
+    if (createFolderDto.folderId !== null) {
+      const parentFolder = await this.prismaService.folder.findUnique({
+        where: { folderUserRelation: { id: createFolderDto.folderId, userId: userId } },
+        select: { id: true }
+      });
 
-    if (!parentFolder) {
-      throw new BadRequestException("A pasta pai informada não existe!");
-    };
-    if (parentFolder.userId !== userId) {
-      throw new ForbiddenException("Você não têm permissão para inserir pastas na conta de outro usuário");
-    };
+      if (!parentFolder) {
+        throw new BadRequestException("A pasta pai informada não existe!");
+      }
+    }
 
-    const newFolder = await this.prismaService.folder.create({
+    return await this.prismaService.folder.create({
       data: {
         ...createFolderDto,
         userId: userId
       },
     });
 
-    return newFolder;
+  }
+
+  private async searchForFolderInTheDatabase(folderSearchCondition: any): Promise<Folder | null> {
+    return await this.prismaService.folder.findUnique({
+      where: folderSearchCondition
+    });
   }
 
   findAll() {
