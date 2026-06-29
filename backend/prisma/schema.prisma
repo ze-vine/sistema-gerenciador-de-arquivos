@@ -39,7 +39,7 @@ model Component {
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   parent          Component?      @relation("FolderHierarchy", fields: [parentId, userId, parentType], references: [id, userId, componentType], onDelete: Cascade)
   children        Component[]     @relation("FolderHierarchy")
-  createdAt       DateTime        @default(now()) @map("created_at")
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
   
   @@unique([id, userId, componentType])
   @@map("components")
