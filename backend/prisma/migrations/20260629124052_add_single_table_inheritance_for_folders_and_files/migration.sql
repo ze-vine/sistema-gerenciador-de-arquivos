@@ -26,3 +26,5 @@ ALTER TABLE "components" ADD CONSTRAINT "components_user_id_fkey" FOREIGN KEY ("
 
 -- AddForeignKey
 ALTER TABLE "components" ADD CONSTRAINT "components_parent_id_user_id_parent_type_fkey" FOREIGN KEY ("parent_id", "user_id", "parent_type") REFERENCES "components"("id", "user_id", "component_type") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "components" ADD CONSTRAINT "components_parent_type_ck" CHECK ("parent_type" IS NULL OR "parent_type" = 'FOLDER');
