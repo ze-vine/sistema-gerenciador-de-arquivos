@@ -8,15 +8,56 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String
+  id            String          @id @default(uuid())
+  email         String          @unique
+  password      String
+  name          String
+  components    Component[]
   files     File[]
   folders   Folder[]
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt     DateTime        @default(now()) @map("created_at")
 
   @@map("users")
+}
+
+enum ComponentType {
+  FOLDER
+  FILE
+}
+
+model Component {
+  id              String          @id @default(uuid())
+  name            String
+  url             String?
+  fileType        String?         @map("file_type")
+  fileSize        Int?            @map("file_size")
+  publicId        String?         @map("public_id")
+  componentType   ComponentType   @map("component_type")
+  parentType      ComponentType?  @map("parent_type")
+  parentId        String?         @map("parent_id")
+  userId          String          @map("user_id")
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent          Component?      @relation("FolderHierarchy", fields: [parentId, userId, parentType], references: [id, userId, componentType], onDelete: Cascade)
+  children        Component[]     @relation("FolderHierarchy")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  
+  @@unique([id, userId, componentType])
+  @@map("components")
+}
+
+model Folder {
+  id            String    @default(uuid())
+  name          String    @unique
+  files         File[]
+  folders       Folder[]  @relation("ChildrenFolders")
+  folderId      String?   @map("folder_id")
+  folder        Folder?   @relation("ChildrenFolders", fields: [folderId, userId], references: [id, userId]) 
+  userId        String    @map("user_id")
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@id(name: "folderUserRelation", [id, userId])
+  @@unique([name, folderId])
+  @@map("folders")
 }
 
 model File {
@@ -42,19 +83,4 @@ model TokenBlacklist {
 
   @@map("token_blacklist")
   @@index([jti])
-}
-
-model Folder {
-  id            String    @default(uuid())
-  name          String    @unique
-  files         File[]
-  folders       Folder[]  @relation("ChildrenFolders")
-  folderId      String?   @map("folder_id")
-  folder        Folder?   @relation("ChildrenFolders", fields: [folderId, userId], references: [id, userId]) 
-  userId        String    @map("user_id")
-  user          User      @relation(fields: [userId], references: [id])
-
-  @@id(name: "folderUserRelation", [id, userId])
-  @@unique([name, folderId])
-  @@map("folders")
 }

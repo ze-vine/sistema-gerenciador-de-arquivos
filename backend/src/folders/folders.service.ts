@@ -1,9 +1,8 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { UpdateFolderDto } from './dto/update-folder.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
-import { Folder } from './entities/folder.entity';
-import { FilesService } from '../files/files.service';
+import { Folder } from "./entities/folder.entity";
 
 @Injectable()
 export class FoldersService {
