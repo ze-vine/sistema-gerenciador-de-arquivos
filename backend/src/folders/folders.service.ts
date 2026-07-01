@@ -3,6 +3,8 @@ import { UpdateFolderDto } from './dto/update-folder.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { Folder } from "./entities/folder.entity";
+import { Component } from '../entities/component.entity';
+import { ComponentType, Prisma } from '@prisma/client';
 
 @Injectable()
 export class FoldersService {
@@ -13,18 +15,19 @@ export class FoldersService {
 
   async create(userId: string, createFolderDto: CreateFolderDto): Promise<Folder> {
 
-    const folderSearchCondition = createFolderDto.folderId !== null
-      ? { name: createFolderDto.name, folderId: createFolderDto.folderId }
+    const folderSearchCondition: { name: string, parentId: string } | { name: string, userId: string } = createFolderDto.parentId !== null
+      ? { name: createFolderDto.name, parentId: createFolderDto.parentId }
       : { name: createFolderDto.name, userId: userId };
 
     const existingFolder = await this.searchForFolderInTheDatabase(folderSearchCondition);
+
     if (existingFolder) {
       throw new ConflictException("Uma pasta com esse nome já existe!");
     }
-
-    if (createFolderDto.folderId !== null) {
-      const parentFolder = await this.prismaService.folder.findUnique({
-        where: { folderUserRelation: { id: createFolderDto.folderId, userId: userId } },
+    
+    if (createFolderDto.parentId !== null) {
+      const parentFolder = await this.prismaService.component.findUnique({
+        where: { id: createFolderDto.parentId },
         select: { id: true }
       });
 
@@ -33,17 +36,18 @@ export class FoldersService {
       }
     }
 
-    return await this.prismaService.folder.create({
+    return await this.prismaService.component.create({
       data: {
         ...createFolderDto,
+        componentType: ComponentType.FOLDER,
         userId: userId
       },
     });
 
   }
 
-  private async searchForFolderInTheDatabase(folderSearchCondition: any): Promise<Folder | null> {
-    return await this.prismaService.folder.findUnique({
+  private async searchForFolderInTheDatabase(folderSearchCondition: { name: string, parentId: string } | { name: string, userId: string }): Promise<Folder | null> {
+    return await this.prismaService.component.findFirst({
       where: folderSearchCondition
     });
   }

@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsOptional, IsString, IsUUID } from "class-validator";
+import { Equals, IsNotEmpty, IsOptional, IsString, IsUUID } from "class-validator";
+import { ComponentType } from "@prisma/client";
 
 export class CreateFolderDto {
     @IsString({ message: "O campo name precisa ser do tipo string!" })
@@ -7,5 +8,5 @@ export class CreateFolderDto {
 
     @IsOptional()
     @IsUUID(undefined, { message: "Você deve informar um UUID válido para a pasta pai!" })
-    folderId!: string | null;
+    parentId!: string | null;
 }
