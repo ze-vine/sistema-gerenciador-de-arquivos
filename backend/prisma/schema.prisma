@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -13,8 +14,8 @@ model User {
   password      String
   name          String
   components    Component[]
-  files     File[]
-  folders   Folder[]
+  files         File[]
+  folders       Folder[]
   createdAt     DateTime        @default(now()) @map("created_at")
 
   @@map("users")
