@@ -3,8 +3,7 @@ import { UpdateFolderDto } from './dto/update-folder.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { Folder } from "./entities/folder.entity";
-import { Component } from '../entities/component.entity';
-import { ComponentType, Prisma } from '@prisma/client';
+import { ComponentType } from '@prisma/client';
 
 @Injectable()
 export class FoldersService {
@@ -36,7 +35,7 @@ export class FoldersService {
       }
     }
 
-    return await this.prismaService.component.create({
+    const folder = await this.prismaService.component.create({
       data: {
         ...createFolderDto,
         componentType: ComponentType.FOLDER,
@@ -44,6 +43,15 @@ export class FoldersService {
       },
     });
 
+    return {
+      id: folder.id,
+      name: folder.name,
+      componentType: folder.componentType,
+      parentType: folder.parentType,
+      parentId: folder.parentId,
+      userId: folder.userId,
+      createdAt: folder.createdAt
+    }
   }
 
   private async searchForFolderInTheDatabase(folderSearchCondition: { name: string, parentId: string } | { name: string, userId: string }): Promise<Folder | null> {
