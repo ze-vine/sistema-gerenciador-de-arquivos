@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Query } from '@nestjs/common';
 import { FoldersService } from './folders.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
@@ -6,6 +6,7 @@ import { AuthGuard } from '../auth/auth.guard';
 import type { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { ComponentsQueryDto } from './dto/components-query.dto';
 
 @Controller('folders')
 export class FoldersController {
@@ -27,8 +28,10 @@ export class FoldersController {
   }
 
   @Get()
-  findAll() {
-    return this.foldersService.findAll();
+  async findAll(@Query() componentsQueryDto: ComponentsQueryDto) {
+    const { parentId, limit, pageToken } = componentsQueryDto;
+    console.log(componentsQueryDto)
+    return await this.foldersService.findRecordsByFolder(parentId, limit, pageToken);
   }
 
   @Get(':id')

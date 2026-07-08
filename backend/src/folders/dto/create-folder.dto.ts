@@ -1,5 +1,4 @@
-import { Equals, IsNotEmpty, IsOptional, IsString, IsUUID } from "class-validator";
-import { ComponentType } from "@prisma/client";
+import { IsNotEmpty, IsOptional, IsString, IsUUID } from "class-validator";
 
 export class CreateFolderDto {
     @IsString({ message: "O campo name precisa ser do tipo string!" })

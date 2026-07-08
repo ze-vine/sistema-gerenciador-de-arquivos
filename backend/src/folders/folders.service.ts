@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { Folder } from "./entities/folder.entity";
 import { ComponentType } from '@prisma/client';
+import { ReadComponentsDto } from './dto/read-components.dto';
 
 @Injectable()
 export class FoldersService {
@@ -60,8 +61,43 @@ export class FoldersService {
     });
   }
 
-  findAll() {
-    return `This action returns all folders`;
+  async findRecordsByFolder(parentId: string | null, limit: number, pageToken: string | null) {
+    let whereCondition;
+
+    if (pageToken !== null) {
+      const decodedPageToken = await this.decodeBase64ToString(pageToken)
+      console.log(decodedPageToken)
+      whereCondition = { parentId: parentId, id: { lt: decodedPageToken } };
+    } else {
+      whereCondition = { parentId: parentId }
+    }
+
+    const components = await this.prismaService.component.findMany({
+      where: whereCondition,
+      orderBy: { id: "desc" },
+      take: limit + 1
+    });
+    let newPageToken: string | null = null
+
+    if (components.length == limit + 1) {
+      components.pop()
+      const lastComponentId = components[limit - 1].id
+      newPageToken = await this.decodeStringToBase64(lastComponentId)
+    }
+
+    const readComponentsDto = new ReadComponentsDto();
+    readComponentsDto.data = components;
+    readComponentsDto.pageToken = newPageToken
+
+    return readComponentsDto
+  }
+
+  private async decodeBase64ToString(base64: string) {
+    return Buffer.from(base64, 'base64').toString('utf-8');
+  }
+
+  private async decodeStringToBase64(text: string) {
+    return Buffer.from(text, 'utf-8').toString('base64');
   }
 
   findOne(id: number) {
