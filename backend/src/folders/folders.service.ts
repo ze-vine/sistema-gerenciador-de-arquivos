@@ -3,8 +3,14 @@ import { UpdateFolderDto } from './dto/update-folder.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { Folder } from "./entities/folder.entity";
-import { ComponentType } from '@prisma/client';
-import { ReadComponentsDto } from './dto/read-components.dto';
+import { ComponentSchema, ComponentType } from '@prisma/client';
+import { PaginationRecordsDto } from './dto/pagination-records-dto';
+import { NextCursor } from './dto/page-token';
+import { ComponentFactory } from '../factories/component.factory';
+import { Component } from '../entities/component.entity';
+
+type WhereConditionWithNextCursor = { parentId: string | null, id: string | {} };
+type WhereConditionWithoutNextCursor = { parentId: string | null };
 
 @Injectable()
 export class FoldersService {
@@ -26,7 +32,7 @@ export class FoldersService {
     }
     
     if (createFolderDto.parentId !== null) {
-      const parentFolder = await this.prismaService.component.findUnique({
+      const parentFolder = await this.prismaService.componentSchema.findUnique({
         where: { id: createFolderDto.parentId },
         select: { id: true }
       });
@@ -36,7 +42,7 @@ export class FoldersService {
       }
     }
 
-    const folder = await this.prismaService.component.create({
+    const folder = await this.prismaService.componentSchema.create({
       data: {
         ...createFolderDto,
         componentType: ComponentType.FOLDER,
@@ -56,40 +62,40 @@ export class FoldersService {
   }
 
   private async searchForFolderInTheDatabase(folderSearchCondition: { name: string, parentId: string } | { name: string, userId: string }): Promise<Folder | null> {
-    return await this.prismaService.component.findFirst({
+    return await this.prismaService.componentSchema.findFirst({
       where: folderSearchCondition
     });
   }
 
-  async findRecordsByFolder(parentId: string | null, limit: number, pageToken: string | null) {
-    let whereCondition;
+  async findRecordsByFolder(parentId: string | null, limit: number, nextCursor: string | null): Promise<PaginationRecordsDto> {
+    let whereCondition: WhereConditionWithNextCursor | WhereConditionWithoutNextCursor = { parentId: parentId };
 
-    if (pageToken !== null) {
-      const decodedPageToken = await this.decodeBase64ToString(pageToken)
-      console.log(decodedPageToken)
-      whereCondition = { parentId: parentId, id: { lt: decodedPageToken } };
-    } else {
-      whereCondition = { parentId: parentId }
+    if (nextCursor !== null) {
+      const decodedNextCursor = await this.decodeBase64ToString(nextCursor)
+      whereCondition = { parentId: parentId, id: { lt: decodedNextCursor } };
     }
 
-    const components = await this.prismaService.component.findMany({
+    const databaseComponents = await this.prismaService.componentSchema.findMany({
       where: whereCondition,
       orderBy: { id: "desc" },
       take: limit + 1
     });
-    let newPageToken: string | null = null
 
-    if (components.length == limit + 1) {
-      components.pop()
-      const lastComponentId = components[limit - 1].id
-      newPageToken = await this.decodeStringToBase64(lastComponentId)
+    let newNextCursor: string | null = null;
+
+    if (databaseComponents.length == limit + 1) {
+      databaseComponents.pop()
+      const lastComponentId = databaseComponents[limit - 1].id
+      newNextCursor = await this.decodeStringToBase64(lastComponentId)
     }
 
-    const readComponentsDto = new ReadComponentsDto();
-    readComponentsDto.data = components;
-    readComponentsDto.pageToken = newPageToken
+    let newComponents: Component[] = [];
 
-    return readComponentsDto
+    for (const newComponent of databaseComponents) {
+      newComponents.push(ComponentFactory.createComponent(newComponent, newComponent.componentType))
+    }
+
+    return new PaginationRecordsDto(newComponents, new NextCursor(newNextCursor));
   }
 
   private async decodeBase64ToString(base64: string) {
