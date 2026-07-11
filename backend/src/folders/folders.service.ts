@@ -9,8 +9,8 @@ import { NextCursor } from './dto/page-token';
 import { ComponentFactory } from '../factories/component.factory';
 import { Component } from '../entities/component.entity';
 
-type WhereConditionWithNextCursor = { parentId: string | null, id: string | {} };
-type WhereConditionWithoutNextCursor = { parentId: string | null };
+type WhereConditionWithNextCursor = { userId: string, parentId: string | null, id: string | {} };
+type WhereConditionWithoutNextCursor = { userId: string, parentId: string | null };
 
 @Injectable()
 export class FoldersService {
@@ -67,8 +67,8 @@ export class FoldersService {
     });
   }
 
-  async findRecordsByFolder(parentId: string | null, limit: number, nextCursor: string | null): Promise<PaginationRecordsDto> {
-    const whereConditionBySearch = this.createWhereCondition(parentId, nextCursor);
+  async findRecordsByFolder(userId: string, parentId: string | null, limit: number, nextCursor: string | null): Promise<PaginationRecordsDto> {
+    const whereConditionBySearch = this.createWhereCondition(userId, parentId, nextCursor);
     const databaseComponents = await this.findRecordsByFolderInDatabase(whereConditionBySearch, limit);
     const newNextCursor = this.createNextCursor(databaseComponents, limit);
     const filteredComponents = this.filterReturnedComponents(databaseComponents);
@@ -87,12 +87,12 @@ export class FoldersService {
     });
   }
 
-  private createWhereCondition(parentId: string | null, nextCursor: string | null): WhereConditionWithNextCursor | WhereConditionWithoutNextCursor {
+  private createWhereCondition(userId: string, parentId: string | null, nextCursor: string | null): WhereConditionWithNextCursor | WhereConditionWithoutNextCursor {
     if (nextCursor !== null) {
       const decodedNextCursor = this.decodeBase64ToString(nextCursor)
-      return { parentId: parentId, id: { lt: decodedNextCursor } };
+      return { userId: userId, parentId: parentId, id: { lt: decodedNextCursor } };
     }
-    return { parentId: parentId }
+    return { userId: userId, parentId: parentId }
   }
 
   private createNextCursor(databaseComponents: ComponentSchema[], limit: number): string | null {

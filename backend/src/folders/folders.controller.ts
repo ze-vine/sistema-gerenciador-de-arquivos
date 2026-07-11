@@ -16,21 +16,27 @@ export class FoldersController {
     private configService: ConfigService
   ) {}
 
+  private async getUserIdByCookies(request: Request, key: string) {
+    const token = request.cookies[key];
+    const payload = await this.jwtService.verifyAsync(token, {
+      secret: this.configService.get<string>('JWT_SECRET'),
+    });
+    return payload.sub
+  }
+
   @Post()
   @UseGuards(AuthGuard)
   async create(@Req() request: Request, @Body() createFolderDto: CreateFolderDto) {
-    const token = request.cookies["access_token"];
-    const payload = await this.jwtService.verifyAsync(token, {
-            secret: this.configService.get<string>('JWT_SECRET'),
-    });
-    const userId = payload.sub
+    const userId = await this.getUserIdByCookies(request, "access_token");
     return this.foldersService.create(userId, createFolderDto);
   }
 
   @Get()
-  async findRecordsByFolder(@Query() componentsQueryDto: ComponentsQueryDto) {
+  @UseGuards(AuthGuard)
+  async findRecordsByFolder(@Req() request: Request, @Query() componentsQueryDto: ComponentsQueryDto) {
+    const userId = await this.getUserIdByCookies(request, "access_token");
     const { parentId, limit, nextCursor } = componentsQueryDto;
-    return await this.foldersService.findRecordsByFolder(parentId, limit, nextCursor);
+    return await this.foldersService.findRecordsByFolder(userId, parentId, limit, nextCursor);
   }
 
   @Get(':id')
