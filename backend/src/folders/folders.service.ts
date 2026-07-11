@@ -68,41 +68,47 @@ export class FoldersService {
   }
 
   async findRecordsByFolder(parentId: string | null, limit: number, nextCursor: string | null): Promise<PaginationRecordsDto> {
-    let whereCondition: WhereConditionWithNextCursor | WhereConditionWithoutNextCursor = { parentId: parentId };
+    const whereConditionBySearch = this.createWhereCondition(parentId, nextCursor);
+    const databaseComponents = await this.findRecordsByFolderInDatabase(whereConditionBySearch, limit);
+    const newNextCursor = this.createNextCursor(databaseComponents, limit);
+    const filteredComponents = this.filterReturnedComponents(databaseComponents);
+    return new PaginationRecordsDto(filteredComponents, new NextCursor(newNextCursor));
+  }
 
-    if (nextCursor !== null) {
-      const decodedNextCursor = await this.decodeBase64ToString(nextCursor)
-      whereCondition = { parentId: parentId, id: { lt: decodedNextCursor } };
-    }
+  private filterReturnedComponents(databaseComponents: ComponentSchema[]): Component[] {
+    return databaseComponents.map(component => ComponentFactory.createComponent(component, component.componentType));
+  }
 
-    const databaseComponents = await this.prismaService.componentSchema.findMany({
+  private async findRecordsByFolderInDatabase(whereCondition: WhereConditionWithNextCursor | WhereConditionWithoutNextCursor, limit: number): Promise<ComponentSchema[]> {
+    return await this.prismaService.componentSchema.findMany({
       where: whereCondition,
       orderBy: { id: "desc" },
       take: limit + 1
     });
-
-    let newNextCursor: string | null = null;
-
-    if (databaseComponents.length == limit + 1) {
-      databaseComponents.pop()
-      const lastComponentId = databaseComponents[limit - 1].id
-      newNextCursor = await this.decodeStringToBase64(lastComponentId)
-    }
-
-    let newComponents: Component[] = [];
-
-    for (const newComponent of databaseComponents) {
-      newComponents.push(ComponentFactory.createComponent(newComponent, newComponent.componentType))
-    }
-
-    return new PaginationRecordsDto(newComponents, new NextCursor(newNextCursor));
   }
 
-  private async decodeBase64ToString(base64: string) {
+  private createWhereCondition(parentId: string | null, nextCursor: string | null): WhereConditionWithNextCursor | WhereConditionWithoutNextCursor {
+    if (nextCursor !== null) {
+      const decodedNextCursor = this.decodeBase64ToString(nextCursor)
+      return { parentId: parentId, id: { lt: decodedNextCursor } };
+    }
+    return { parentId: parentId }
+  }
+
+  private createNextCursor(databaseComponents: ComponentSchema[], limit: number): string | null {
+    if (databaseComponents.length == limit + 1) {
+      databaseComponents.pop();
+      const lastComponentId = databaseComponents[databaseComponents.length - 1].id;
+      return this.decodeStringToBase64(lastComponentId);
+    }
+    return null;
+  }
+
+  private decodeBase64ToString(base64: string): string {
     return Buffer.from(base64, 'base64').toString('utf-8');
   }
 
-  private async decodeStringToBase64(text: string) {
+  private decodeStringToBase64(text: string): string {
     return Buffer.from(text, 'utf-8').toString('base64');
   }
 

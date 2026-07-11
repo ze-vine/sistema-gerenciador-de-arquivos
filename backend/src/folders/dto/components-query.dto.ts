@@ -23,7 +23,7 @@ export class ComponentsQueryDto {
         return value;
     })
     @ValidateIf((objeto, valor) => valor !== null)
-    @IsNotEmpty({ message: "O campo pageToken não pode estar vazio!" })
-    @IsBase64({}, { message: "O campo pageToken deve estar codificado em base64!" })
-    pageToken!: string | null;
+    @IsNotEmpty({ message: "O campo nextCursor não pode estar vazio!" })
+    @IsBase64({}, { message: "O campo nextCursor deve estar codificado em base64!" })
+    nextCursor!: string | null;
 }

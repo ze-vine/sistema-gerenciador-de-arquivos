@@ -29,8 +29,8 @@ export class FoldersController {
 
   @Get()
   async findRecordsByFolder(@Query() componentsQueryDto: ComponentsQueryDto) {
-    const { parentId, limit, pageToken } = componentsQueryDto;
-    return await this.foldersService.findRecordsByFolder(parentId, limit, pageToken);
+    const { parentId, limit, nextCursor } = componentsQueryDto;
+    return await this.foldersService.findRecordsByFolder(parentId, limit, nextCursor);
   }
 
   @Get(':id')
