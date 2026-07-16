@@ -4,13 +4,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { Folder } from "./entities/folder.entity";
 import { ComponentSchema, ComponentType } from '@prisma/client';
-import { PaginationRecordsDto } from './dto/pagination-records-dto';
-import { NextCursor } from './dto/page-token';
+import { PaginationRecordsDto } from './folders.interface';
 import { ComponentFactory } from '../factories/component.factory';
-import { Component } from '../entities/component.entity';
-
-type WhereConditionWithNextCursor = { userId: string, parentId: string | null, id: string | {} };
-type WhereConditionWithoutNextCursor = { userId: string, parentId: string | null };
+import { Component } from './folders.interface';
+import { ComponentWhere } from './folders.interface';
 
 @Injectable()
 export class FoldersService {
@@ -70,16 +67,20 @@ export class FoldersService {
   async findRecordsByFolder(userId: string, parentId: string | null, limit: number, nextCursor: string | null): Promise<PaginationRecordsDto> {
     const whereConditionBySearch = this.createWhereCondition(userId, parentId, nextCursor);
     const databaseComponents = await this.findRecordsByFolderInDatabase(whereConditionBySearch, limit);
-    const newNextCursor = this.createNextCursor(databaseComponents, limit);
+    const valueNextCursor = this.createNextCursor(databaseComponents, limit);
+    const newNextCursor = { nextCursor: valueNextCursor };
     const filteredComponents = this.filterReturnedComponents(databaseComponents);
-    return new PaginationRecordsDto(filteredComponents, new NextCursor(newNextCursor));
+    return {
+      data: filteredComponents,
+      meta: newNextCursor
+    }
   }
 
   private filterReturnedComponents(databaseComponents: ComponentSchema[]): Component[] {
     return databaseComponents.map(component => ComponentFactory.createComponent(component, component.componentType));
   }
 
-  private async findRecordsByFolderInDatabase(whereCondition: WhereConditionWithNextCursor | WhereConditionWithoutNextCursor, limit: number): Promise<ComponentSchema[]> {
+  private async findRecordsByFolderInDatabase(whereCondition: ComponentWhere, limit: number): Promise<ComponentSchema[]> {
     return await this.prismaService.componentSchema.findMany({
       where: whereCondition,
       orderBy: { id: "desc" },
@@ -87,7 +88,7 @@ export class FoldersService {
     });
   }
 
-  private createWhereCondition(userId: string, parentId: string | null, nextCursor: string | null): WhereConditionWithNextCursor | WhereConditionWithoutNextCursor {
+  private createWhereCondition(userId: string, parentId: string | null, nextCursor: string | null): ComponentWhere {
     if (nextCursor !== null) {
       const decodedNextCursor = this.decodeBase64ToString(nextCursor)
       return { userId: userId, parentId: parentId, id: { lt: decodedNextCursor } };
