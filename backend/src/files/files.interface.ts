@@ -6,3 +6,12 @@ export interface File extends Component {
     fileSize: number | null;
     publicId: string | null;
 }
+
+export interface CreateFileDto {
+    name: string;
+    url: string;
+    type: string;
+    size: number;
+    publicId: string;
+    parentId: string;
+}

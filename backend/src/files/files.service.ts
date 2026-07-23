@@ -2,16 +2,20 @@ import { Injectable, BadRequestException, NotFoundException, InternalServerError
 import { v2 as cloudinary } from 'cloudinary';
 import { UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
 import * as streamifier from 'streamifier';
-import { CreateFileDto } from './dto/create-file.dto';
+import { CreateFileDto } from "./files.interface";
 import { PrismaService } from '../prisma/prisma.service';
+import { ComponentType } from '@prisma/client';
+import { File } from './entities/file.entity';
 
 @Injectable()
 export class FilesService {
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService
+  ) {}
 
   async findAll(userId: string) {
-    return this.prisma.file.findMany({
+    return this.prismaService.file.findMany({
       where: {
         userId: userId,
       },
@@ -22,7 +26,7 @@ export class FilesService {
   }
 
   async remove(fileId: string, userId: string) {
-    const file = await this.prisma.file.findFirst(
+    const file = await this.prismaService.file.findFirst(
       { where: { id: fileId, userId: userId } }
     );
 
@@ -31,7 +35,7 @@ export class FilesService {
     try {
       const result = await cloudinary.uploader.destroy(file.publicId);
 
-      return await this.prisma.file.delete({ 
+      return await this.prismaService.file.delete({ 
       where: { id: fileId },
       select: { 
         id: true, 
@@ -65,24 +69,11 @@ export class FilesService {
     });
   }
 
-  async create(userId: string, createFileDto: CreateFileDto) {
-    return this.prisma.file.create({
-      //@ts-ignore
-      data: {
-        ...createFileDto,
-        user: {
-          connect: { id: userId }
-        }
-      },
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        url: true,
-        publicId: true,
-        size: true,
-        createdAt: true,
-      }
-    });
+  async create(userId: string, createFileDto: CreateFileDto): Promise<File> {
+    const componentType = ComponentType.FILE;
+    const newFile = { ...createFileDto, componentType, userId }
+
+    return await this.prismaService.componentSchema.create({ data: newFile });
   }
-}
+
+};
