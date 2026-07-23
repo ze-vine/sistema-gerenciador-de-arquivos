@@ -7,7 +7,6 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { ComponentValidations } from '../utils/component-utils';
 import { ComponentType } from '@prisma/client';
-import { CreateFileDto } from './files.interface';
 import { Component } from '../entities/component.entity';
 
 @Controller('files')
@@ -25,12 +24,6 @@ export class FilesController {
         secret: this.configService.get<string>('JWT_SECRET'),
       });
       return payload.sub
-  }
-
-  @Get()
-  @UseGuards(AuthGuard)
-  async findAll(@Req() request) {
-    return this.filesService.findAll(request.user.sub);
   }
 
   @Delete(':id')

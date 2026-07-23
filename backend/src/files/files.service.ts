@@ -14,17 +14,6 @@ export class FilesService {
     private readonly prismaService: PrismaService
   ) {}
 
-  async findAll(userId: string) {
-    return this.prismaService.file.findMany({
-      where: {
-        userId: userId,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-  }
-
   async remove(id: string) {
     const file = await this.prismaService.componentSchema.findUnique(
       { where: { id: id } }
@@ -34,7 +23,7 @@ export class FilesService {
 
     const isFile = file.componentType === ComponentType.FILE;
     if (!isFile) throw new BadRequestException("Você só pode excluir um arquivo válido!");
-    
+
     if (file.publicId !== null) {const result = await cloudinary.uploader.destroy(file.publicId);}
 
     return await this.prismaService.componentSchema.delete({ where: { id: id } });
