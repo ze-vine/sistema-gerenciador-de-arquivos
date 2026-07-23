@@ -25,32 +25,19 @@ export class FilesService {
     });
   }
 
-  async remove(fileId: string, userId: string) {
-    const file = await this.prismaService.file.findFirst(
-      { where: { id: fileId, userId: userId } }
+  async remove(id: string) {
+    const file = await this.prismaService.componentSchema.findUnique(
+      { where: { id: id } }
     );
 
-    if (!file) throw new NotFoundException("O arquivo não foi encontrado!");
+    if (!file) throw new NotFoundException("O arquivo não pode ser excluído, pois ele não existe!");
 
-    try {
-      const result = await cloudinary.uploader.destroy(file.publicId);
+    const isFile = file.componentType === ComponentType.FILE;
+    if (!isFile) throw new BadRequestException("Você só pode excluir um arquivo válido!");
+    
+    if (file.publicId !== null) {const result = await cloudinary.uploader.destroy(file.publicId);}
 
-      return await this.prismaService.file.delete({ 
-      where: { id: fileId },
-      select: { 
-        id: true, 
-        name: true,
-        type: true,
-        url: true,
-        publicId: true,
-        size: true,
-        createdAt: true, 
-      }, 
-    });
-    } catch(e) {
-      console.error("Erro na exclusão!", e);
-      throw new InternalServerErrorException("Ocorreu um erro ao tentar remover seu arquivo. Por favor, tente novamente!");
-    }
+    return await this.prismaService.componentSchema.delete({ where: { id: id } });
   }
 
   uploadFile(file: Express.Multer.File): Promise<UploadApiResponse | UploadApiErrorResponse> {

@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { ComponentValidations } from '../utils/component-utils';
 import { ComponentType } from '@prisma/client';
 import { CreateFileDto } from './files.interface';
+import { Component } from '../entities/component.entity';
 
 @Controller('files')
 export class FilesController {
@@ -34,8 +35,8 @@ export class FilesController {
 
   @Delete(':id')
   @UseGuards(AuthGuard)
-  async remove(@Param('id', new ParseUUIDPipe()) id: string, @Req() request) {
-    return this.filesService.remove(id, request.user.sub);
+  async remove(@Param('id', new ParseUUIDPipe()) id: string): Promise<Component> {
+    return this.filesService.remove(id);
   }
 
   @Post('upload')
