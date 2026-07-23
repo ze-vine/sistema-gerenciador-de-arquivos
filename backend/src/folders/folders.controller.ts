@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { ComponentsQueryDto } from './dto/components-query.dto';
 import { PaginationRecordsDto } from './folders.interface';
 import { Folder } from './entities/folder.entity';
+import { Component } from '../entities/component.entity';
 
 @Controller('folders')
 export class FoldersController {
@@ -47,8 +48,11 @@ export class FoldersController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateFolderDto: UpdateFolderDto) {
-    return this.foldersService.update(+id, updateFolderDto);
+  @UseGuards(AuthGuard)
+  async update(@Param('id') id: string, @Body() updateFolderDto: UpdateFolderDto, @Req() request: Request): Promise<Component> {
+    const userId = await this.getUserIdByCookies(request, "access_token");
+    const { name } = updateFolderDto;
+    return await this.foldersService.update(id, userId, name);
   }
 
   @Delete(':id')

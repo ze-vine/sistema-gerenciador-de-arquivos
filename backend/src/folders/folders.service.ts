@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { UpdateFolderDto } from './dto/update-folder.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
@@ -117,8 +117,17 @@ export class FoldersService {
     return `This action returns a #${id} folder`;
   }
 
-  update(id: number, updateFolderDto: UpdateFolderDto) {
-    return `This action updates a #${id} folder`;
+  async update(id: string, userId: string, name: string): Promise<Component> {
+    const folder = await this.prismaService.componentSchema.findUnique({
+      where: { id: id, userId: userId }
+    });
+
+    if (!folder) throw new NotFoundException("A pasta que você está tentando modificar não existe!");
+
+    return await this.prismaService.componentSchema.update({
+      where: { id: id },
+      data: { name: name }
+    });
   }
 
   remove(id: number) {

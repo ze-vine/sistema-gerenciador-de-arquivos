@@ -1,4 +1,7 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateFolderDto } from './create-folder.dto';
+import { IsNotEmpty, IsString } from "class-validator";
 
-export class UpdateFolderDto extends PartialType(CreateFolderDto) {}
+export class UpdateFolderDto {
+    @IsString({ message: "O campo name precisa ser do tipo string!" })
+    @IsNotEmpty({ message: "O campo name é obrigatório!" })
+    name!: string;
+}
