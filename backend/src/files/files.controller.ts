@@ -1,4 +1,4 @@
-import { Controller, Post, UploadedFile, UseInterceptors, UseGuards, BadRequestException, Get, Delete, Param, ParseUUIDPipe, Req, ConflictException, Body } from '@nestjs/common';
+import { Controller, Post, UploadedFile, UseInterceptors, UseGuards, BadRequestException, Get, Delete, Param, ParseUUIDPipe, Req, ConflictException, Body, Patch } from '@nestjs/common';
 import type { Request } from "express";
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FilesService } from './files.service';
@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { ComponentValidations } from '../utils/component-utils';
 import { ComponentType } from '@prisma/client';
 import { Component } from '../entities/component.entity';
+import { UpdateFileDto } from './dto/update-file.dto';
 
 @Controller('files')
 export class FilesController {
@@ -24,6 +25,14 @@ export class FilesController {
         secret: this.configService.get<string>('JWT_SECRET'),
       });
       return payload.sub
+  }
+
+  @Patch(":id")
+  @UseGuards(AuthGuard)
+  async update(@Param('id', new ParseUUIDPipe()) id: string, @Body() updateFileDto: UpdateFileDto, @Req() request: Request): Promise<Component> {
+    const { name } = updateFileDto;
+    const userId = await this.getUserIdByCookies(request, "access_token");
+    return await this.filesService.update(name, id, userId);
   }
 
   @Delete(':id')

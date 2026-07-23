@@ -6,6 +6,7 @@ import { CreateFileDto } from "./files.interface";
 import { PrismaService } from '../prisma/prisma.service';
 import { ComponentType } from '@prisma/client';
 import { File } from './entities/file.entity';
+import { Component } from '../entities/component.entity';
 
 @Injectable()
 export class FilesService {
@@ -27,6 +28,20 @@ export class FilesService {
     if (file.publicId !== null) {const result = await cloudinary.uploader.destroy(file.publicId);}
 
     return await this.prismaService.componentSchema.delete({ where: { id: id } });
+  }
+
+  async update(name: string, id: string, userId: string): Promise<Component> {
+    const existingFile = await this.prismaService.componentSchema.findUnique({
+      where: { id: id, userId: userId },
+      select: { id: true }
+    });
+
+    if (!existingFile) throw new NotFoundException("O arquivo que você está tentando modificar não existe!");
+
+    return await this.prismaService.componentSchema.update({
+      where: { id: id },
+      data: { name: name }
+    })
   }
 
   uploadFile(file: Express.Multer.File): Promise<UploadApiResponse | UploadApiErrorResponse> {
