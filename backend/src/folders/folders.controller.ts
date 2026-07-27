@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Query, ParseUUIDPipe } from '@nestjs/common';
 import { FoldersService } from './folders.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
@@ -56,7 +56,10 @@ export class FoldersController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.foldersService.remove(+id);
+  @UseGuards(AuthGuard)
+  async remove(@Param('id', new ParseUUIDPipe()) id: string, @Req() request: Request) {
+    const userId = await this.getUserIdByCookies(request, "access_token");
+    this.foldersService.remove(id, userId);
+    return { message: "Pasta excluída com sucesso!" };
   }
 }

@@ -130,7 +130,23 @@ export class FoldersService {
     });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} folder`;
+  async remove(id: string, userId: string) {
+    const folder = await this.prismaService.componentSchema.findUnique({
+       where: { id: id, userId: userId },
+       select: { id: true } 
+    });
+
+    if (!folder) throw new NotFoundException("A pasta que você está tentando excluir não existe!");
+
+    const publicIdsOfFiles = await this.prismaService.componentSchema.findMany({
+      where: { componentType: ComponentType.FILE, parentId: id },
+      select: { publicId: true }
+    });
+
+    if (publicIdsOfFiles.length > 0) {
+      // exclusão no cloudinary
+    }
+
+    await this.prismaService.componentSchema.delete({ where: { id: id } });
   }
 }
