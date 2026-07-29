@@ -1,4 +1,4 @@
-import { Controller, Post, UploadedFile, UseInterceptors, UseGuards, BadRequestException, Get, Delete, Param, ParseUUIDPipe, Req, ConflictException, Body, Patch } from '@nestjs/common';
+import { Controller, Post, UploadedFile, UseInterceptors, UseGuards, BadRequestException, Delete, Param, ParseUUIDPipe, Req, ConflictException, Body, Patch } from '@nestjs/common';
 import type { Request } from "express";
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FilesService } from './files.service';
@@ -9,6 +9,7 @@ import { ComponentValidations } from '../utils/component-utils';
 import { ComponentType } from '@prisma/client';
 import { Component } from '../entities/component.entity';
 import { UpdateFileDto } from './dto/update-file.dto';
+import type { CloudStorageDataDto, FileProperties, FilePropertiesDto } from './files.interface';
 
 @Controller('files')
 export class FilesController {
@@ -41,6 +42,14 @@ export class FilesController {
     return this.filesService.remove(id);
   }
 
+  @Post("upload/v2")
+  @UseGuards(AuthGuard)
+  async generateSignedURL(@Req() request: Request, @Body() filePropertiesDto: FilePropertiesDto): Promise<CloudStorageDataDto> {
+    const userId = await this.getUserIdByCookies(request, "access_token");
+    const fileProperties = { userId, ...filePropertiesDto };
+    return this.filesService.uploadFilev2(fileProperties);
+  }
+
   @Post('upload')
   @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor('file',
@@ -54,20 +63,20 @@ export class FilesController {
     }
   ))
 
-  async uploadAndCreateFileInTheDatabase(@UploadedFile() file: Express.Multer.File, parentId: string, @Req() request: Request) {
+  async uploadAndCreateFileInTheDatabase(@UploadedFile() file: Express.Multer.File, @Body("parentId") parentId: string, @Req() request: Request) {
 
     const userId = await this.getUserIdByCookies(request, "access_token");
+    const formatedParentId = parentId === "null" || parentId === "undefined" ? null : parentId;
     const fileName = Buffer.from(file.originalname, 'latin1').toString('utf8');
     const componentType = ComponentType.FILE;
-
-    this.componentValidations.validateComponent(fileName, parentId, userId, componentType);
+    this.componentValidations.validateComponent(fileName, formatedParentId, userId, componentType);
     
     const cloudinaryResult = await this.filesService.uploadFile(file);
 
     const fileData = {
       name: fileName,
-      type: file.mimetype,
-      size: file.size,
+      fileType: file.mimetype,
+      fileSize: file.size,
       url: cloudinaryResult.secure_url,
       publicId: cloudinaryResult.public_id,
       parentId: parentId

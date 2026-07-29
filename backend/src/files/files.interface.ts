@@ -10,8 +10,40 @@ export interface File extends Component {
 export interface CreateFileDto {
     name: string;
     url: string;
-    type: string;
-    size: number;
+    fileType: string;
+    fileSize: number;
     publicId: string;
+    parentId: string;
+}
+
+export interface SignatureParams {
+    publicId: string;
+}
+
+export interface CloudStorageDataDto {
+    signature: string;
+    apiKey: string;
+    cloudName: string;
+    publicId: string;
+    timestamp: number;
+}
+
+export interface CompletedSignatureParams {
+    publicId: string;
+    timestamp: number;
+}
+
+export interface FileProperties {
+    name: string;
+    size: number;
+    type: string;
+    parentId: string;
+    userId: string;
+}
+
+export interface FilePropertiesDto {
+    name: string;
+    size: number;
+    type: string;
     parentId: string;
 }

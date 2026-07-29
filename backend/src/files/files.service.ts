@@ -1,15 +1,19 @@
-import { Injectable, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { v2 as cloudinary } from 'cloudinary';
 import { UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
 import * as streamifier from 'streamifier';
-import { CreateFileDto } from "./files.interface";
+import { CloudStorageDataDto, CompletedSignatureParams, CreateFileDto, FileProperties, SignatureParams } from "./files.interface";
 import { PrismaService } from '../prisma/prisma.service';
-import { ComponentType } from '@prisma/client';
+import { ComponentSchema, ComponentType } from '@prisma/client';
 import { File } from './entities/file.entity';
 import { Component } from '../entities/component.entity';
 
 @Injectable()
 export class FilesService {
+
+  private readonly CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "";
+  private readonly CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || "";
+  private readonly CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || "";
 
   constructor(
     private readonly prismaService: PrismaService
@@ -42,6 +46,60 @@ export class FilesService {
       where: { id: id },
       data: { name: name }
     })
+  }
+
+  async uploadFilev2(fileProperties: FileProperties): Promise<CloudStorageDataDto> {
+    const file = await this.createFileMetadata(fileProperties);
+    return this.generateSignedURL({ publicId: file.id });
+  }
+
+  private generateSignedURL(signatureParams: SignatureParams): CloudStorageDataDto {
+    this.generateConfigurationObjectOfCloudinary();
+    const completedSignatureParams = this.generateSignatureParams(signatureParams);
+    const signature = this.generateSignature(completedSignatureParams)
+    return {
+      signature: signature,
+      apiKey: this.CLOUDINARY_API_KEY,
+      cloudName: this.CLOUDINARY_CLOUD_NAME,
+      timestamp: completedSignatureParams.timestamp,
+      publicId: completedSignatureParams.publicId
+    };
+  }
+
+  private async createFileMetadata(fileMetadata: FileProperties) {
+    return await this.prismaService.componentSchema.create({
+      data: {
+        name: fileMetadata.name,
+        fileType: fileMetadata.type,
+        fileSize: fileMetadata.size,
+        componentType: ComponentType.FILE,
+        parentType: fileMetadata.parentId !== null ? ComponentType.FOLDER : null,
+        parentId: fileMetadata.parentId,
+        userId: fileMetadata.userId,
+      }
+    });
+  }
+
+  private generateSignature(signatureParams: SignatureParams): string {
+    return cloudinary.utils.api_sign_request(
+      signatureParams,
+      this.CLOUDINARY_API_SECRET
+    );
+  }
+
+  private generateSignatureParams(signatureParams: SignatureParams): CompletedSignatureParams {
+    return {
+      ...signatureParams,
+      timestamp: Math.floor(new Date().getTime() / 1000)
+    }
+  }
+
+  private generateConfigurationObjectOfCloudinary(): void {
+    cloudinary.config({
+      cloudName: this.CLOUDINARY_CLOUD_NAME,
+      apiKey: this.CLOUDINARY_API_KEY,
+      apiSecret: this.CLOUDINARY_API_SECRET,
+    });
   }
 
   uploadFile(file: Express.Multer.File): Promise<UploadApiResponse | UploadApiErrorResponse> {
