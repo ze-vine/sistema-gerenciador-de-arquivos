@@ -2,21 +2,23 @@ import { BadRequestException, ConflictException, Injectable } from "@nestjs/comm
 import { PrismaService } from "../prisma/prisma.service";
 import { Component } from "../entities/component.entity";
 import { ComponentType } from "@prisma/client";
+import { ComponentParams } from "../files/files.interface";
 
 @Injectable()
 export class ComponentValidations {
 
     constructor ( private prismaService: PrismaService ) {}
 
-    async validateComponent(name: string, parentId: string | null, userId: string, type: ComponentType): Promise<void> {
+    async validateComponent(componentParams: ComponentParams): Promise<void> {
+        const { name, parentId, userId, componentType } = componentParams;
         const hasParent = parentId !== null;
         const queryCondition =  hasParent ? { name: name, parentId: parentId } : { name: name, userId: userId };
-        const existingFile = await this.searchForComponentInTheDatabase(queryCondition);
+        const existingComponent = await this.searchForComponentInTheDatabase(queryCondition);
 
-        if (existingFile) {
+        if (existingComponent) {
             let message;
 
-            switch (type) {
+            switch (componentType) {
                 case ComponentType.FOLDER:
                     message = "Uma pasta com esse nome já existe!";
                     break;

@@ -1,5 +1,4 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { UpdateFolderDto } from './dto/update-folder.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { Folder } from "./entities/folder.entity";
@@ -8,6 +7,7 @@ import { PaginationRecordsDto } from './folders.interface';
 import { ComponentFactory } from '../factories/component.factory';
 import { Component } from './folders.interface';
 import { ComponentWhere } from './folders.interface';
+import { v2 as cloudinary } from 'cloudinary';
 
 @Injectable()
 export class FoldersService {
@@ -144,7 +144,9 @@ export class FoldersService {
     });
 
     if (publicIdsOfFiles.length > 0) {
-      // exclusão no cloudinary
+      for (const data of publicIdsOfFiles) {
+        if (data.publicId !== null) await cloudinary.uploader.destroy(data.publicId);
+      }
     }
 
     await this.prismaService.componentSchema.delete({ where: { id: id } });

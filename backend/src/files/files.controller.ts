@@ -1,15 +1,15 @@
-import { Controller, Post, UploadedFile, UseInterceptors, UseGuards, BadRequestException, Delete, Param, ParseUUIDPipe, Req, ConflictException, Body, Patch } from '@nestjs/common';
+import { Controller, Post, UseGuards, Delete, Param, ParseUUIDPipe, Req, Body, Patch, Headers, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import type { RawBodyRequest } from "@nestjs/common";
 import type { Request } from "express";
-import { FileInterceptor } from '@nestjs/platform-express';
 import { FilesService } from './files.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { ComponentValidations } from '../utils/component-utils';
-import { ComponentType } from '@prisma/client';
 import { Component } from '../entities/component.entity';
 import { UpdateFileDto } from './dto/update-file.dto';
-import type { CloudStorageDataDto, FileProperties, FilePropertiesDto } from './files.interface';
+import type { CloudStorageDataDto } from './files.interface';
+import { CreateFileDto } from './dto/create-file.dto';
+import { v2 as cloudinary } from "cloudinary";
 
 @Controller('files')
 export class FilesController {
@@ -17,7 +17,6 @@ export class FilesController {
     private readonly filesService: FilesService,
     private jwtService: JwtService,
     private configService: ConfigService,
-    private componentValidations: ComponentValidations
   ) {}
 
   private async getUserIdByCookies(@Req() request: Request, key: string): Promise<string> {
@@ -25,7 +24,7 @@ export class FilesController {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: this.configService.get<string>('JWT_SECRET'),
       });
-      return payload.sub
+      return payload.sub;
   }
 
   @Patch(":id")
@@ -42,47 +41,53 @@ export class FilesController {
     return this.filesService.remove(id);
   }
 
-  @Post("upload/v2")
+  @Post("upload")
   @UseGuards(AuthGuard)
-  async generateSignedURL(@Req() request: Request, @Body() filePropertiesDto: FilePropertiesDto): Promise<CloudStorageDataDto> {
+  async generateUploadSignature(@Req() request: Request, @Body() createFileDto: CreateFileDto): Promise<CloudStorageDataDto> {
     const userId = await this.getUserIdByCookies(request, "access_token");
-    const fileProperties = { userId, ...filePropertiesDto };
-    return this.filesService.uploadFilev2(fileProperties);
+    const fileParams = { ...createFileDto, userId };
+    return this.filesService.generateSignatureToUpload(fileParams);
   }
 
-  @Post('upload')
-  @UseGuards(AuthGuard)
-  @UseInterceptors(FileInterceptor('file',
-    {
-      fileFilter: (req, file, callback) => {
-        if (!file.originalname.match(/\.(jpg|jpeg|png|gif|pdf)$/)) {
-          return callback(new BadRequestException('Apenas imagens e PDFs são permitidos!'), false);
-        }
-        callback(null, true);
-      },
-    }
-  ))
-
-  async uploadAndCreateFileInTheDatabase(@UploadedFile() file: Express.Multer.File, @Body("parentId") parentId: string, @Req() request: Request) {
-
-    const userId = await this.getUserIdByCookies(request, "access_token");
-    const formatedParentId = parentId === "null" || parentId === "undefined" ? null : parentId;
-    const fileName = Buffer.from(file.originalname, 'latin1').toString('utf8');
-    const componentType = ComponentType.FILE;
-    this.componentValidations.validateComponent(fileName, formatedParentId, userId, componentType);
-    
-    const cloudinaryResult = await this.filesService.uploadFile(file);
-
-    const fileData = {
-      name: fileName,
-      fileType: file.mimetype,
-      fileSize: file.size,
-      url: cloudinaryResult.secure_url,
-      publicId: cloudinaryResult.public_id,
-      parentId: parentId
-    }
-
-    return await this.filesService.create(userId, fileData);
+  private validateCloudinaryWebhook(webhookBody, webhookHeader): boolean {
+    const body = webhookBody;
+    const timestamp = webhookHeader["x-cld-timestamp"];
+    const signature = webhookHeader["x-cld-signature"];
+    const result = cloudinary.utils.verifyNotificationSignature(body, timestamp, signature);
+    return result;
   }
 
+  @Post("create")
+  async createFileMetadata(@Headers() webhookHeader, @Req() requestString: RawBodyRequest<Request>) {
+
+    const webhookRawBody = requestString.rawBody?.toString("utf-8");
+
+    if (!webhookRawBody) {
+      throw new BadRequestException("Corpo da requisição ausente!");
+    };
+
+    if (!this.validateCloudinaryWebhook(webhookRawBody, webhookHeader)) {
+      throw new UnauthorizedException("Assinatura do webhook inválida!");
+    }
+
+    let webhookBody;
+
+    try {
+      webhookBody = JSON.parse(webhookRawBody);
+    } catch (error) {
+      throw new BadRequestException("O payload do webhook não é um JSON válido");
+    }
+
+    const fileMetadata = {
+      name: webhookBody.context.custom.name,
+      type: webhookBody.format,
+      size: webhookBody.bytes,
+      parentId: webhookBody.context.custom.parentId,
+      userId: webhookBody.context.custom.userId,
+      createdAt: webhookBody.created_at,
+      publicId: webhookBody.public_id
+    };
+
+    await this.filesService.createFileMetadata(fileMetadata);
+  }
 }

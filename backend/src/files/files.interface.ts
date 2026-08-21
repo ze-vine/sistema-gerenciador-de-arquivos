@@ -1,3 +1,4 @@
+import { ComponentType } from "@prisma/client";
 import { Component } from "../folders/folders.interface";
 
 export interface File extends Component {
@@ -17,20 +18,17 @@ export interface CreateFileDto {
 }
 
 export interface SignatureParams {
-    publicId: string;
+    public_id: string;
+    upload_preset: string;
+    timestamp: number;
+    context: string;
 }
 
 export interface CloudStorageDataDto {
     signature: string;
     apiKey: string;
-    cloudName: string;
-    publicId: string;
-    timestamp: number;
-}
-
-export interface CompletedSignatureParams {
-    publicId: string;
-    timestamp: number;
+    urlCloud: string;
+    signatureParams: SignatureParams;
 }
 
 export interface FileProperties {
@@ -46,4 +44,21 @@ export interface FilePropertiesDto {
     size: number;
     type: string;
     parentId: string;
+}
+
+export interface FileMetadata {
+    name: string;
+    type: string;
+    size: number;
+    parentId: string;
+    userId: string;
+    createdAt: Date;
+    publicId: string;
+}
+
+export interface ComponentParams {
+    name: string;
+    parentId: string;
+    userId: string;
+    componentType: ComponentType;
 }

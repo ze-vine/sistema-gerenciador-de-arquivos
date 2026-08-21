@@ -2,11 +2,13 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { v2 as cloudinary } from 'cloudinary';
 import { UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
 import * as streamifier from 'streamifier';
-import { CloudStorageDataDto, CompletedSignatureParams, CreateFileDto, FileProperties, SignatureParams } from "./files.interface";
+import { CloudStorageDataDto, ComponentParams, CreateFileDto, FileMetadata, FileProperties, SignatureParams } from "./files.interface";
 import { PrismaService } from '../prisma/prisma.service';
-import { ComponentSchema, ComponentType } from '@prisma/client';
+import { ComponentType } from '@prisma/client';
 import { File } from './entities/file.entity';
 import { Component } from '../entities/component.entity';
+import { uuidv7 } from "uuidv7";
+import { ComponentValidations } from '../utils/component-utils';
 
 @Injectable()
 export class FilesService {
@@ -14,10 +16,18 @@ export class FilesService {
   private readonly CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "";
   private readonly CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || "";
   private readonly CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || "";
+  private readonly CLOUDINARY_URL_UPLOAD = process.env.CLOUDINARY_URL_UPLOAD || "";
 
   constructor(
-    private readonly prismaService: PrismaService
-  ) {}
+    private prismaService: PrismaService,
+    private componentValidations: ComponentValidations
+  ) {
+    cloudinary.config({
+      cloudName: this.CLOUDINARY_CLOUD_NAME,
+      apiKey: this.CLOUDINARY_API_KEY,
+      apiSecret: this.CLOUDINARY_API_SECRET,
+    });
+  }
 
   async remove(id: string) {
     const file = await this.prismaService.componentSchema.findUnique(
@@ -48,38 +58,49 @@ export class FilesService {
     })
   }
 
-  async uploadFilev2(fileProperties: FileProperties): Promise<CloudStorageDataDto> {
-    const file = await this.createFileMetadata(fileProperties);
-    return this.generateSignedURL({ publicId: file.id });
-  }
+  async generateSignatureToUpload(fileParams): Promise<CloudStorageDataDto> {
+    const componentType = ComponentType.FILE;
+    const componentParams = { ...fileParams, componentType };
+    await this.componentValidations.validateComponent(componentParams);
 
-  private generateSignedURL(signatureParams: SignatureParams): CloudStorageDataDto {
-    this.generateConfigurationObjectOfCloudinary();
-    const completedSignatureParams = this.generateSignatureParams(signatureParams);
-    const signature = this.generateSignature(completedSignatureParams)
+    const publicId = uuidv7();
+    const completedSignatureParams = { ...componentParams, publicId };
+    const signatureParams = this.generateSignatureParams(completedSignatureParams);
+    return this.returnSignatureParamsToUpload(signatureParams);
+  }
+  
+  private returnSignatureParamsToUpload(signatureParams: SignatureParams): CloudStorageDataDto {
+    const signature = this.generateSignature(signatureParams);
     return {
-      signature: signature,
+      signatureParams: {
+        context: signatureParams.context,
+        public_id: signatureParams.public_id,
+        upload_preset: signatureParams.upload_preset,
+        timestamp: signatureParams.timestamp
+      },
       apiKey: this.CLOUDINARY_API_KEY,
-      cloudName: this.CLOUDINARY_CLOUD_NAME,
-      timestamp: completedSignatureParams.timestamp,
-      publicId: completedSignatureParams.publicId
+      signature: signature,
+      urlCloud: this.CLOUDINARY_URL_UPLOAD
     };
   }
 
-  private async createFileMetadata(fileMetadata: FileProperties) {
-    return await this.prismaService.componentSchema.create({
-      data: {
+  async createFileMetadata(fileMetadata: FileMetadata) {
+    const file = {
         name: fileMetadata.name,
         fileType: fileMetadata.type,
         fileSize: fileMetadata.size,
         componentType: ComponentType.FILE,
-        parentType: fileMetadata.parentId !== null ? ComponentType.FOLDER : null,
-        parentId: fileMetadata.parentId,
+        parentType: fileMetadata.parentId !== "null" ? ComponentType.FOLDER : null,
+        parentId: fileMetadata.parentId !== "null" ? fileMetadata.parentId : null,
         userId: fileMetadata.userId,
-      }
+        publicId: fileMetadata.publicId
+    };
+    
+    return await this.prismaService.componentSchema.create({
+      data: file
     });
   }
-
+  
   private generateSignature(signatureParams: SignatureParams): string {
     return cloudinary.utils.api_sign_request(
       signatureParams,
@@ -87,19 +108,14 @@ export class FilesService {
     );
   }
 
-  private generateSignatureParams(signatureParams: SignatureParams): CompletedSignatureParams {
+  private generateSignatureParams(signatureParams): SignatureParams {
+    const { userId, parentId, name, publicId } = signatureParams;
     return {
-      ...signatureParams,
+      context: `userId=${userId}|parentId=${parentId}|name=${name}`,
+      public_id: publicId,
+      upload_preset: "secure_upload_preset",
       timestamp: Math.floor(new Date().getTime() / 1000)
     }
-  }
-
-  private generateConfigurationObjectOfCloudinary(): void {
-    cloudinary.config({
-      cloudName: this.CLOUDINARY_CLOUD_NAME,
-      apiKey: this.CLOUDINARY_API_KEY,
-      apiSecret: this.CLOUDINARY_API_SECRET,
-    });
   }
 
   uploadFile(file: Express.Multer.File): Promise<UploadApiResponse | UploadApiErrorResponse> {
