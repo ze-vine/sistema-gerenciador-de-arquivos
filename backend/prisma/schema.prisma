@@ -8,14 +8,59 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String
-  files     File[]
-  createdAt DateTime @default(now()) @map("created_at")
+  id            String          @id @default(uuid(7))
+  email         String          @unique
+  password      String
+  name          String
+  components    ComponentSchema[]
+  files         File[]
+  folders       Folder[]
+  createdAt     DateTime        @default(now()) @map("created_at")
 
   @@map("users")
+}
+
+enum ComponentType {
+  FOLDER
+  FILE
+}
+
+model ComponentSchema {
+  id              String                @id @default(uuid(7))
+  name            String
+  url             String?
+  fileType        String?               @map("file_type")
+  fileSize        Int?                  @map("file_size")
+  publicId        String?               @map("public_id")
+  componentType   ComponentType         @map("component_type")
+  parentType      ComponentType?        @map("parent_type")
+  parentId        String?               @map("parent_id")
+  userId          String                @map("user_id")
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent          ComponentSchema?      @relation("ComponentsHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  uniqueParent    ComponentSchema?      @relation("ComponentUniqueRelation", fields: [parentId, userId, componentType], references: [id, userId, componentType])
+  children        ComponentSchema[]     @relation("ComponentsHierarchy")
+  uniqueChildren  ComponentSchema[]     @relation("ComponentUniqueRelation")
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  
+  @@unique([id, userId, componentType])
+  @@index([userId, parentId(sort: Desc)])
+  @@map("components")
+}
+
+model Folder {
+  id            String    @default(uuid())
+  name          String    @unique
+  files         File[]
+  folders       Folder[]  @relation("ChildrenFolders")
+  folderId      String?   @map("folder_id")
+  folder        Folder?   @relation("ChildrenFolders", fields: [folderId, userId], references: [id, userId]) 
+  userId        String    @map("user_id")
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@id(name: "folderUserRelation", [id, userId])
+  @@unique([name, folderId])
+  @@map("folders")
 }
 
 model File {
@@ -24,8 +69,10 @@ model File {
   url          String
   type         String
   size         Int
-  publicId     String @map("public_id")
-  userId       String @map("user_id")
+  publicId     String   @map("public_id")
+  folderId     String?  @map("folder_id")
+  folder       Folder?  @relation(fields: [folderId, userId], references: [id, userId])
+  userId       String   @map("user_id")
   user         User     @relation(fields: [userId], references: [id])
   createdAt    DateTime @default(now()) @map("created_at")
 
@@ -33,7 +80,7 @@ model File {
 }
 
 model TokenBlacklist {
-  id            String @id @default(uuid())
+  id            String @id @default(uuid(7))
   jti           String @unique
   expiresAt     DateTime @map("expires_at")
 
